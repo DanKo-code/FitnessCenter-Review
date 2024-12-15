@@ -135,3 +135,12 @@ func (u *ReviewUseCase) GetCoachReviews(ctx context.Context, coachId uuid.UUID) 
 
 	return reviews, nil
 }
+
+func (u *ReviewUseCase) GetCoachesReviews(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]*models.Review, error) {
+	reviews, err := u.reviewRepo.GetCoachesReviews(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return reviews, nil
+}

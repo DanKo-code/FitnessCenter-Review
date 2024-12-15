@@ -42,6 +42,7 @@ func (r *ReviewgRPC) CreateCoachReview(
 	reviewObject := &reviewProtobuf.ReviewObject{
 		Id:          review.Id.String(),
 		Body:        review.Body,
+		UserId:      review.UserId.String(),
 		CreatedTime: review.CreatedTime.String(),
 		UpdatedTime: review.UpdatedTime.String(),
 	}
@@ -158,6 +159,55 @@ func (r *ReviewgRPC) GetCoachReviews(
 
 	response := &reviewProtobuf.GetCoachReviewsResponse{
 		ReviewObjects: reviewObjects,
+	}
+
+	return response, nil
+}
+
+func (r *ReviewgRPC) GetCoachesReviews(
+	ctx context.Context,
+	request *reviewProtobuf.GetCoachesReviewsRequest,
+) (*reviewProtobuf.GetCoachesReviewsResponse, error) {
+
+	var idsUUID []uuid.UUID
+	for _, id := range request.CoachesIds {
+		idsUUID = append(idsUUID, uuid.MustParse(id))
+	}
+
+	idsWithReviews, err := r.reviewUseCase.GetCoachesReviews(ctx, idsUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	var coachIdWithReviewObjectArr []*reviewProtobuf.CoachIdWithReviewObject
+	for key, idWithReviews := range idsWithReviews {
+
+		coachIdWithReviewObject := &reviewProtobuf.CoachIdWithReviewObject{
+			CoachId:       key.String(),
+			ReviewObjects: nil,
+		}
+
+		var reviewObjects []*reviewProtobuf.ReviewObject
+		for _, review := range idWithReviews {
+
+			reviewObject := &reviewProtobuf.ReviewObject{
+				Id:          review.Id.String(),
+				UserId:      review.UserId.String(),
+				Body:        review.Body,
+				CreatedTime: review.CreatedTime.String(),
+				UpdatedTime: review.UpdatedTime.String(),
+			}
+
+			reviewObjects = append(reviewObjects, reviewObject)
+		}
+
+		coachIdWithReviewObject.ReviewObjects = reviewObjects
+
+		coachIdWithReviewObjectArr = append(coachIdWithReviewObjectArr, coachIdWithReviewObject)
+	}
+
+	response := &reviewProtobuf.GetCoachesReviewsResponse{
+		CoachIdWithReviewObject: coachIdWithReviewObjectArr,
 	}
 
 	return response, nil

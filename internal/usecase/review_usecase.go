@@ -14,4 +14,5 @@ type ReviewUseCase interface {
 	DeleteReviewById(ctx context.Context, id uuid.UUID) (*models.Review, error)
 
 	GetCoachReviews(ctx context.Context, coachId uuid.UUID) ([]*models.Review, error)
+	GetCoachesReviews(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]*models.Review, error)
 }

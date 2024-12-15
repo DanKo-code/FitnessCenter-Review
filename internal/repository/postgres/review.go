@@ -11,6 +11,8 @@ import (
 	"github.com/DanKo-code/FitnessCenter-Review/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+	"time"
 )
 
 type ReviewRepository struct {
@@ -144,4 +146,50 @@ func (r *ReviewRepository) GetCoachReviews(ctx context.Context, coachId uuid.UUI
 	}
 
 	return reviews, nil
+}
+
+func (r *ReviewRepository) GetCoachesReviews(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]*models.Review, error) {
+	coachReviews := make(map[uuid.UUID][]*models.Review)
+
+	if len(ids) == 0 {
+		return coachReviews, nil
+	}
+
+	query := `
+		SELECT coach_review.coach_id, review.id, review.body, review.created_time, review.updated_time, review.user_id
+		FROM "review"
+		JOIN "coach_review" ON review.id = coach_review.review_id
+		WHERE coach_review.coach_id = ANY($1)
+	`
+
+	type resultRow struct {
+		CoachID     uuid.UUID `db:"coach_id"`
+		Id          uuid.UUID `db:"id"`
+		Body        string    `db:"body"`
+		UserId      uuid.UUID `db:"user_id"`
+		CreatedTime time.Time `db:"created_time"`
+		UpdatedTime time.Time `db:"updated_time"`
+	}
+
+	var rows []resultRow
+
+	err := r.db.SelectContext(ctx, &rows, query, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+
+		review := &models.Review{
+			Id:          row.Id,
+			Body:        row.Body,
+			UserId:      row.UserId,
+			CreatedTime: row.CreatedTime,
+			UpdatedTime: row.UpdatedTime,
+		}
+
+		coachReviews[row.CoachID] = append(coachReviews[row.CoachID], review)
+	}
+
+	return coachReviews, nil
 }
